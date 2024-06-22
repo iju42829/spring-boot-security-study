@@ -6,6 +6,7 @@ import hello.springJWT.dto.MemberDto;
 import hello.springJWT.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 public class JoinService {
 
     private final MemberRepository memberRepository;
+    private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
     public void createMember(MemberDto.Join memberJoinDto) {
         Boolean exists = memberRepository.existsByUsername(memberJoinDto.getUsername());
@@ -23,7 +25,7 @@ public class JoinService {
         }
 
         Member member = Member.createMember(memberJoinDto.getUsername(),
-                memberJoinDto.getPassword(),
+                bCryptPasswordEncoder.encode(memberJoinDto.getPassword()),
                 Role.ROLE_USER);
 
         memberRepository.save(member);
