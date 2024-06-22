@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: springJWT
+
+  profiles:
+    include: db
+
+logging:
+  level:
+    org.hibernate.SQL : debug
+    hello.springJWT : debug
