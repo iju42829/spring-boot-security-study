@@ -1,5 +1,6 @@
 package hello.springJWT.config;
 
+import hello.springJWT.jwt.JWTUtil;
 import hello.springJWT.jwt.LoginFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -19,6 +20,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final AuthenticationConfiguration authenticationConfiguration;
+    private final JWTUtil jwtUtil;
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
@@ -53,7 +55,7 @@ public class SecurityConfig {
 
         // 필터 추가
         http
-                .addFilterAt(new LoginFilter(authenticationConfiguration.getAuthenticationManager()),
+                .addFilterAt(new LoginFilter(authenticationConfiguration.getAuthenticationManager(), jwtUtil),
                         UsernamePasswordAuthenticationFilter.class);
 
         // session setting
