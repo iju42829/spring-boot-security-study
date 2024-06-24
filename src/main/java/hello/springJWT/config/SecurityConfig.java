@@ -1,5 +1,6 @@
 package hello.springJWT.config;
 
+import hello.springJWT.jwt.JWTFilter;
 import hello.springJWT.jwt.JWTUtil;
 import hello.springJWT.jwt.LoginFilter;
 import lombok.RequiredArgsConstructor;
@@ -54,6 +55,9 @@ public class SecurityConfig {
                         .anyRequest().authenticated());
 
         // 필터 추가
+        http
+                .addFilterBefore(new JWTFilter(jwtUtil), LoginFilter.class);
+
         http
                 .addFilterAt(new LoginFilter(authenticationConfiguration.getAuthenticationManager(), jwtUtil),
                         UsernamePasswordAuthenticationFilter.class);

@@ -1,5 +1,6 @@
 package hello.springJWT.jwt;
 
+import hello.springJWT.common.Role;
 import hello.springJWT.dto.CustomMemberDetails;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -50,7 +51,8 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         Collection<? extends GrantedAuthority> authorities = authResult.getAuthorities();
         Iterator<? extends GrantedAuthority> iterator = authorities.iterator();
         GrantedAuthority auth = iterator.next();
-        String role = auth.getAuthority();
+
+        Role role = Role.fromString(auth.getAuthority());
 
         String token = jwtUtil.createJwt(username, role, 60 * 60 * 10L);
 

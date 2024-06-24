@@ -50,7 +50,7 @@ public class JWTUtil {
                 .before(new Date());
     }
 
-    public String createJwt(String username, String role, Long expiredMs) {
+    public String createJwt(String username, Role role, Long expiredMs) {
         return Jwts
                 .builder()
                 .claim("username", username)
