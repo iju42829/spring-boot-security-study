@@ -3,7 +3,7 @@ spring:
     name: springJWT
 
   profiles:
-    include: db
+    include: db, jwt
 
 logging:
   level:
