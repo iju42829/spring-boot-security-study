@@ -30,4 +30,8 @@ public class Member {
     public static Member createMember(String username, String password, Role role) {
         return new Member(username, password, role);
     }
+
+    public static Member createMemberWithoutPassword(String username,  Role role) {
+        return new Member(username, "", role);
+    }
 }
