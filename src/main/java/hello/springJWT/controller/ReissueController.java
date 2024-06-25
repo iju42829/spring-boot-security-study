@@ -12,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Objects;
+
 @RestController
 @RequiredArgsConstructor
 public class ReissueController {
@@ -53,14 +55,28 @@ public class ReissueController {
         Role role = Role.fromString(jwtUtil.getRole(refresh));
 
         String newAccess = jwtUtil.createJwt("access", username, role, 600000L);
+        String newRefresh = jwtUtil.createJwt("refresh", username, role, 86400000L);
 
-        Cookie cookie = new Cookie("access", newAccess);
-        cookie.setMaxAge(10 * 60);
-        cookie.setHttpOnly(true);
-
-        response.addCookie(cookie);
+        response.addCookie(createCookie("access", newAccess));
+        response.addCookie(createCookie("refresh", newRefresh));
 
 
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    private Cookie createCookie(String key, String value) {
+        Cookie cookie = new Cookie(key, value);
+
+        if (Objects.equals(key, "access")) {
+            cookie.setMaxAge(10 * 60);
+            cookie.setHttpOnly(true);
+        }
+
+        else if (Objects.equals(key, "refresh")) {
+            cookie.setMaxAge(24 * 60 * 60);
+            cookie.setHttpOnly(true);
+        }
+
+        return cookie;
     }
 }
