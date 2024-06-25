@@ -1,7 +1,9 @@
 package hello.springJWT.controller;
 
 import hello.springJWT.common.Role;
+import hello.springJWT.domain.Refresh;
 import hello.springJWT.jwt.JWTUtil;
+import hello.springJWT.repository.RefreshRepository;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,12 +14,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Date;
 import java.util.Objects;
 
 @RestController
 @RequiredArgsConstructor
 public class ReissueController {
 
+    private final RefreshRepository refreshRepository;
     private final JWTUtil jwtUtil;
 
     @PostMapping("/reissue")
@@ -51,11 +55,23 @@ public class ReissueController {
             return new ResponseEntity<>("invalid refresh token", HttpStatus.BAD_REQUEST);
         }
 
+        Boolean isExists = refreshRepository.existsByRefreshToken(refresh);
+
+        if (!isExists) {
+            return new ResponseEntity<>("refresh token not found", HttpStatus.BAD_REQUEST);
+        }
+
         String username = jwtUtil.getUsername(refresh);
         Role role = Role.fromString(jwtUtil.getRole(refresh));
 
         String newAccess = jwtUtil.createJwt("access", username, role, 600000L);
         String newRefresh = jwtUtil.createJwt("refresh", username, role, 86400000L);
+
+        refreshRepository.deleteByRefreshToken(refresh);
+
+        refreshRepository.save(Refresh.createRefresh(username,
+                newRefresh,
+                new Date(System.currentTimeMillis() + 86400000L).toString()));
 
         response.addCookie(createCookie("access", newAccess));
         response.addCookie(createCookie("refresh", newRefresh));

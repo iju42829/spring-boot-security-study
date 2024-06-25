@@ -1,7 +1,9 @@
 package hello.springJWT.jwt;
 
 import hello.springJWT.common.Role;
+import hello.springJWT.domain.Refresh;
 import hello.springJWT.dto.CustomMemberDetails;
+import hello.springJWT.repository.RefreshRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -19,6 +21,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.Objects;
 
@@ -27,6 +30,7 @@ import java.util.Objects;
 public class LoginFilter extends UsernamePasswordAuthenticationFilter {
 
     private final AuthenticationManager authenticationManager;
+    private final RefreshRepository refreshRepository;
     private final JWTUtil jwtUtil;
 
     @Override
@@ -55,6 +59,9 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         // 토근 생성
         String access = jwtUtil.createJwt("access", username, role, 600000L);
         String refresh = jwtUtil.createJwt("refresh", username, role, 86400000L);
+
+        Refresh refreshEntity = Refresh.createRefresh(username, refresh, new Date(System.currentTimeMillis() + 86400000L).toString());
+        refreshRepository.save(refreshEntity);
 
         response.addCookie(createCookie("access", access));
         response.addCookie(createCookie("refresh", refresh));
