@@ -1,8 +1,10 @@
 package hello.springJWT.config;
 
+import hello.springJWT.jwt.CustomLogoutHandler;
 import hello.springJWT.jwt.JWTFilter;
 import hello.springJWT.jwt.JWTUtil;
 import hello.springJWT.jwt.LoginFilter;
+import hello.springJWT.repository.RefreshRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -15,6 +17,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 
@@ -26,7 +29,9 @@ import java.util.Collections;
 public class SecurityConfig {
 
     private final AuthenticationConfiguration authenticationConfiguration;
+    private final RefreshRepository refreshRepository;
     private final JWTUtil jwtUtil;
+    private final CustomLogoutHandler customLogoutHandler;
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
@@ -73,16 +78,23 @@ public class SecurityConfig {
         // 경로별 인가 작업
         http
                 .authorizeHttpRequests((auth) -> auth
-                        .requestMatchers("/login", "/", "join").permitAll()
+                        .requestMatchers("/login", "/", "/join").permitAll()
                         .requestMatchers("/admin").hasRole("ADMIN")
-                        .anyRequest().authenticated());
+                        .requestMatchers("/reissue").permitAll()
+                        .anyRequest().authenticated())
+                .logout(logout -> logout
+                        .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
+                        .logoutSuccessUrl("/login")
+                        .invalidateHttpSession(true)
+                        .deleteCookies("access", "refresh")
+                        .addLogoutHandler(customLogoutHandler));
 
         // 필터 추가
         http
                 .addFilterBefore(new JWTFilter(jwtUtil), LoginFilter.class);
 
         http
-                .addFilterAt(new LoginFilter(authenticationConfiguration.getAuthenticationManager(), jwtUtil),
+                .addFilterAt(new LoginFilter(authenticationConfiguration.getAuthenticationManager(), refreshRepository, jwtUtil),
                         UsernamePasswordAuthenticationFilter.class);
 
         // session setting

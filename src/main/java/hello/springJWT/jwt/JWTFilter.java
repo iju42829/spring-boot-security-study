@@ -3,8 +3,10 @@ package hello.springJWT.jwt;
 import hello.springJWT.common.Role;
 import hello.springJWT.domain.Member;
 import hello.springJWT.dto.CustomMemberDetails;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -15,6 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -26,31 +29,43 @@ public class JWTFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        String authorization = request.getHeader("Authorization");
+        String accessToken = getAccessToken(request);
 
-        if (authorization == null || !authorization.startsWith("Bearer ")) {
+        if (accessToken == null) {
             filterChain.doFilter(request, response);
 
             return;
         }
 
-        String token = authorization.split(" ")[1];
+        try {
+            jwtUtil.isExpired(accessToken);
 
-        if (jwtUtil.isExpired(token)) {
-            log.info("token expired");
-            filterChain.doFilter(request, response);
+        } catch (ExpiredJwtException e) {
+            PrintWriter writer = response.getWriter();
+            writer.print("access token expired");
+
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 
             return;
         }
 
-        String username = jwtUtil.getUsername(token);
-        Role role = Role.fromString(jwtUtil.getRole(token));
+        String category = jwtUtil.getCategory(accessToken);
 
-        Member member = Member.createMember(username, "tempPassword", role);
+        if (!category.equals("access")) {
+            PrintWriter writer = response.getWriter();
+            writer.print("invalid access token");
 
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+
+            return;
+        }
+
+        String username = jwtUtil.getUsername(accessToken);
+        Role role = Role.fromString(jwtUtil.getRole(accessToken));
+
+        Member member = Member.createMemberWithoutPassword(username, role);
 
         CustomMemberDetails customMemberDetails = new CustomMemberDetails(member);
-
         UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(customMemberDetails,
                 null,
                 customMemberDetails.getAuthorities());
@@ -58,5 +73,19 @@ public class JWTFilter extends OncePerRequestFilter {
         SecurityContextHolder.getContext().setAuthentication(authToken);
 
         filterChain.doFilter(request, response);
+    }
+
+    private String getAccessToken(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("access".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+
+        return null;
     }
 }
